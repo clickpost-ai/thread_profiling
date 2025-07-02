@@ -1,4 +1,3 @@
-# thread_profiling
 
 # Thread Profiler
 
@@ -36,13 +35,13 @@ Follow the comprehensive installation guide for your specific distribution:
 
 Profile Python applications by specifying an environment and process IDs:
 
-```bash
-sudo python3 python_thread_profling -e <env_name> -p <pid1,pid2,...>
+```
+sudo python3 python_thread_profling.py -e <env_name> -p <pid1,pid2,...>
 ```
 
 **Example:**
-```bash
-sudo python3 python_thread_profling -e demo -p 181,182
+```
+sudo python3 python_thread_profling.py -e demo -p 181,182
 ```
 
 ### Java Application Profiling
