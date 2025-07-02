@@ -11,9 +11,6 @@ from datetime import datetime,timedelta
 
 # import timezone
 
-HOST_NAME = 'https://10.100.32.108:9200'
-USERNAME = 'elastic'
-PASSWORD = '2UlpO-_BmPYjTj6tKHfZ'
 
 import socket
 
@@ -22,8 +19,7 @@ ip_Addr = socket.gethostbyname(hostname)
 
 parser = argparse.ArgumentParser(
     description="Trace number of queue requests in jetty server",
-    formatter_class=argparse.RawDescriptionHelpFormatter,
-    epilog=examples)
+    formatter_class=argparse.RawDescriptionHelpFormatter)
 
 parser.add_argument("-p", "--pid",
                     help="trace this PID only")
@@ -40,7 +36,6 @@ server_name = env_name
 f_index = env_name+'-jetty-prod-queue-size'
 r_index = env_name+'-prod-request-count'
 thread_index=env_name+'-prod-thread-pool-utilisation'
-es.indices.create(index=index_create, ignore=400)
 
 # define BPF program
 bpf_text = """
@@ -184,7 +179,6 @@ while (1):
             "machine ip": ip_Addr,
             "threads_used": threads_used
         }
-        es.index(index=thread_index, body=thread_doc)
     current_date = datetime.now()
     str_date = str(
         datetime(current_date.year, current_date.month, current_date.day, current_date.hour, current_date.minute,
