@@ -6,7 +6,6 @@ from socket import inet_ntop, AF_INET, AF_INET6
 from struct import pack
 from time import strftime
 from ctypes import c_int
-from elasticsearch import Elasticsearch
 from datetime import datetime, timezone
 from datetime import datetime, timedelta
 import time
@@ -21,15 +20,11 @@ import socket
 hostname = socket.gethostname()
 ip_Addr = socket.gethostbyname(hostname)
 
-# Connect to Elasticsearch
-es = Elasticsearch(HOST_NAME,
-                   http_auth=(USERNAME, PASSWORD),
-                   verify_certs=False,  # Disable SSL cert verification
-                   ssl_show_warn=False  # Disable warnings for unverified SSL)
-                   )
 
-
-
+# arguments
+examples = """examples:
+    sudo python3 super_final_wsgi_queued_count -p 181  ,182  # comma seprated pids
+"""
 parser = argparse.ArgumentParser(
     description="Trace number of queue requests in jetty server",
     formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -339,7 +334,7 @@ while (1):
     try:
         time.sleep(1)
         request_count = b["request_queued"][S_COUNT].value
-        #print("request queued " + str(request_count))
+        print("request queued " + str(request_count))
         if thread_run_time is None:
             thread_run_time = datetime.now() + timedelta(seconds=15)
         if datetime.now() > thread_run_time:
@@ -348,60 +343,30 @@ while (1):
             while counter < 100000:
                 threads_used += b["threads_used"][c_int(counter)].value
                 counter += 1
-            #print("threads used " + str(threads_used))
+            print("threads used " + str(threads_used))
             total_request = b["total_request"][S_COUNT].value
-            #print("total request " + str(total_request))
+            print("total request " + str(total_request))
             total_lock_time = float(b["lock_time"][S_COUNT].value)/1000
-            #print("total lock time "+str(total_lock_time))
+            print("total lock time "+str(total_lock_time))
             total_time = b["total_time"][S_COUNT].value
             if total_request != 0:
                 total_time = round((float(total_time) / total_request), 2)
-                #print("total time " + str(total_time/1000))
+                print("total time " + str(total_time/1000))
 
             io_wait_time = float(b["io_wait_time"][S_COUNT].value) / 1000
-            #print("io wait time final " + str(io_wait_time))
+            print("io wait time final " + str(io_wait_time))
             io_wait_per_thread=0
             if threads_used!=0:
                 io_wait_per_thread = float(io_wait_time) / threads_used
                 io_wait_per_thread = io_wait_per_thread / 1000
 
-            #print("io wait per thread in seconds " + str(io_wait_per_thread))
+            print("io wait per thread in seconds " + str(io_wait_per_thread))
             b["total_request"].clear()
             b["threads_used"].clear()
             b["lock_time"].clear()
             b["total_time"].clear()
             b["io_wait_time"].clear()
             thread_run_time = datetime.now() + timedelta(seconds=15)
-            thread_doc = {
-                "server_name": server_name,
-                "published_date": datetime.now(timezone.utc),
-                "machine ip": ip_Addr,
-                "threads_used": threads_used
-            }
-            es.index(index=thread_index, body=thread_doc)
-
-            request_doc = {
-                "server_name": server_name,
-                "published_date": datetime.now(timezone.utc),
-                "machine ip": ip_Addr,
-                "total_request": total_request,
-                "total_time": total_time / 1000,
-                "lock_latency": total_lock_time,
-                "io_wait_time": io_wait_time,
-                "io_wait_per_thread":io_wait_per_thread
-            }
-            es.index(index=r_index, body=request_doc)
-
-        document = {
-            "server_name": server_name,
-            "published_date": datetime.now(timezone.utc),
-            "machine ip": ip_Addr,
-            "request_queued": request_count
-        }
-
-        es.index(index=f_index, body=document)
-
-
 
     except KeyboardInterrupt:
         exit()
