@@ -6,27 +6,19 @@ from socket import inet_ntop, AF_INET, AF_INET6
 from struct import pack
 from time import strftime
 from ctypes import c_int
-from elasticsearch import Elasticsearch
 from datetime import datetime, timezone
 from datetime import datetime,timedelta
 
 # import timezone
 
-HOST_NAME = 'Host Name'
-USERNAME = 'username'
-PASSWORD = 'password'
+HOST_NAME = 'https://10.100.32.108:9200'
+USERNAME = 'elastic'
+PASSWORD = '2UlpO-_BmPYjTj6tKHfZ'
 
 import socket
 
 hostname = socket.gethostname()
 ip_Addr = socket.gethostbyname(hostname)
-
-# Connect to Elasticsearch
-es = Elasticsearch(HOST_NAME,
-                   http_auth=(USERNAME, PASSWORD),
-                   verify_certs=False,  # Disable SSL cert verification
-                   ssl_show_warn=False  # Disable warnings for unverified SSL)
-                   )
 
 parser = argparse.ArgumentParser(
     description="Trace number of queue requests in jetty server",
@@ -113,7 +105,7 @@ TRACEPOINT_PROBE(syscalls,sys_enter_shutdown)
      {     
         u64 fd_val=0;
         u64 delta_us=0;
-        delta= (bpf_ktime_get_ns() - *tsp)_us /1000;
+        delta_us = (bpf_ktime_get_ns() - *tsp)/1000;
         total_time.atomic_increment(0,delta_us);
         total_request_served.atomic_increment(0);
         close_fd_counts.update(&fd_key,&fd_val);
@@ -129,13 +121,32 @@ TRACEPOINT_PROBE(syscalls,sys_enter_shutdown)
 
 
 """
+# process event
+'''def print_ipv4_event(cpu, data, size):
+    event = b["transfer_data"].event(data)
+    print("pid :"+str(event.pid) + " request queued "+str(event.request_queued));
+# initialize BPF
+b = BPF(text=bpf_text)
+print("starting")
+
+# read events
+b["transfer_data"].open_perf_buffer(print_ipv4_event, page_cnt=64)
+while 1:
+    try:
+        b.perf_buffer_poll()
+        #time.sleep(10);
+    except KeyboardInterrupt:
+        exit()
+'''
 S_COUNT = c_int(0)
 if args.pid:
     bpf_text = bpf_text.replace('FILTER_PID',
                                 'if (pid != %s) { return 0; }' % args.pid)
+#print(bpf_text)
 b = BPF(text=bpf_text)
 import time
 
+print("my pid " + str(args.pid))
 thread_run_time=None
 while (1):
     try:
@@ -149,6 +160,9 @@ while (1):
     total_time = b["total_time"][S_COUNT].value
     if total_request_served > 0:
         total_time = (float(total_time) / total_request_served) / 1000
+    print("total request  " + str(total_request))
+    print("total request served " + str(total_request_served))
+    print("total time " + str(total_time))
     b["total_request"].clear()
     b["total_time"].clear()
     b["total_request_served"].clear()
@@ -161,6 +175,7 @@ while (1):
             threads_used += b["threads_used"][c_int(counter)].value
             counter += 1
         threads_used = round((float(threads_used) / 50) * 100,2)
+        print("threads used " + str(threads_used))
         b["threads_used"].clear()
         thread_run_time = datetime.now() + timedelta(minutes=1)
         thread_doc={
@@ -174,20 +189,4 @@ while (1):
     str_date = str(
         datetime(current_date.year, current_date.month, current_date.day, current_date.hour, current_date.minute,
                  current_date.second))
-    document = {
-        "server_name": server_name,
-        "published_date": datetime.now(timezone.utc),
-        "machine ip": ip_Addr,
-        "request_queued": request_count
-    }
-
-    request_doc = {
-        "server_name": server_name,
-        "published_date": datetime.now(timezone.utc),
-        "machine ip": ip_Addr,
-        "total_request": total_request,
-        "total_time": total_time,
-    }
-    # Indexing document
-    es.index(index=f_index, body=document)
-    es.index(index=r_index, body=request_doc)
+    print("%s: rq/sec: %d" % (strftime("%H:%M:%S"), b["request_count"][S_COUNT].value))
