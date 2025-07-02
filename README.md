@@ -1,4 +1,3 @@
-
 # Thread Profiler
 
 A lightweight profiling tool for monitoring Python and Java applications using BCC (BPF Compiler Collection).
@@ -35,13 +34,13 @@ Follow the comprehensive installation guide for your specific distribution:
 
 Profile Python applications by specifying an environment and process IDs:
 
-```
-sudo python3 python_thread_profling.py -e <env_name> -p <pid1,pid2,...>
+```bash
+sudo python3 python_thread_profling -e <env_name> -p <pid1,pid2,...>
 ```
 
 **Example:**
-```
-sudo python3 python_thread_profling.py -e demo -p 181,182
+```bash
+sudo python3 python_thread_profling -e demo -p 181,182
 ```
 
 ### Java Application Profiling
@@ -74,7 +73,7 @@ Contributions are welcome! Please feel free to submit issues, feature requests, 
 
 ## License
 
-[Add your license information here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
