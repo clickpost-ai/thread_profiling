@@ -30,10 +30,6 @@ es = Elasticsearch(HOST_NAME,
 
 
 
-# arguments
-examples = """examples:
-    sudo python3 super_final_wsgi_queued_count -p 181  ,182  # comma seprated pids
-"""
 parser = argparse.ArgumentParser(
     description="Trace number of queue requests in jetty server",
     formatter_class=argparse.RawDescriptionHelpFormatter,
