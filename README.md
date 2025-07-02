@@ -3,7 +3,7 @@
 
 To run this Install BCC:
 1. sudo amazon-linux-extras install BCC -y (for installing in amazon linux 2)
-2. for other distro: Please follow this link:
+2. for other distro: Please follow this link: https://github.com/iovisor/bcc/blob/master/INSTALL.md?ref=kimsehwan96.com
 
 
 To run profiling for python servers run below command:
