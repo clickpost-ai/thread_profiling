@@ -11,22 +11,18 @@ from datetime import datetime, timedelta
 import time
 import sys
 
-HOST_NAME = 'host_link'
-USERNAME = "username"
-PASSWORD = "passwoed"
 
 import socket
 
 hostname = socket.gethostname()
 ip_Addr = socket.gethostbyname(hostname)
 
-
 # arguments
 examples = """examples:
     sudo python3 super_final_wsgi_queued_count -p 181  ,182  # comma seprated pids
 """
 parser = argparse.ArgumentParser(
-    description="Trace number of queue requests in jetty server",
+    description="Trace number of queue requests in python server",
     formatter_class=argparse.RawDescriptionHelpFormatter,
     epilog=examples)
 
@@ -36,14 +32,14 @@ parser.add_argument("-e", "--env", nargs='+',
                     help="env name")
 args = parser.parse_args()
 
-env_name=args.env[0]
-index_create = env_name +'-QUEUE-SIZE'
+env_name = args.env[0]
+index_create = env_name + '-QUEUE-SIZE'
 server_name = env_name
-f_index = env_name+'-queue-size'
-r_index = env_name+'-request-count'
-thread_index = env_name+'-thread-pool-utilisation'
+f_index = env_name + '-queue-size'
+r_index = env_name + '-request-count'
+thread_index = env_name + '-thread-pool-utilisation'
 
-bpf_text="""
+bpf_text = """
 #include <uapi/linux/ptrace.h>
 #include <linux/tcp.h>
 #include <net/sock.h>
@@ -84,12 +80,12 @@ TRACEPOINT_PROBE(syscalls,sys_exit_accept4)
         int final_fd_key=final_val + fd_key;
         fd_counts.update(&final_fd_key,&fd_val);
         request_queued.atomic_increment(0);
-        
+
         int connection_accepted_fd_key=final_val + fd_key;
         u64 connection_accepted_fd_val=1;
         connection_accepted_fd.update(&connection_accepted_fd_key,&connection_accepted_fd_val);
 
-    
+
     }
     return 0;
 }
@@ -128,10 +124,10 @@ TRACEPOINT_PROBE(syscalls,sys_enter_ioctl)
     u64 *ioctl_addr=epoll_fd.lookup(&final_ioctll_key);
     int final_fd_key=final_val + fd_key;
     u64 fd_val = 1;
-    
+
     int connection_accepted_fd_key=final_val + fd_key;
     u64 connection_accepted_fd_val=1;
-    
+
     //21537 -> FION_BIO
     if(ioctl_addr!=NULL && *ioctl_addr == 1 && args->cmd == 21537)
     {
@@ -157,7 +153,7 @@ TRACEPOINT_PROBE(syscalls,sys_enter_recvfrom)
     u64 *fd_addr=fd_counts.lookup(&final_fd_key);
     int final_epoll_key=final_val + fd_key;
     u64 epoll_val=0;
-    
+
     int connection_accepted_fd_key=final_val + fd_key;
     u64 connection_accepted_fd_val=0;
     u64* connection_accepted_addr=connection_accepted_fd.lookup(&connection_accepted_fd_key);
@@ -211,17 +207,17 @@ TRACEPOINT_PROBE(syscalls,sys_enter_close)
     int final_epoll_key=final_val + fd_key;
     u64 epoll_val=0;
     epoll_fd.update(&final_epoll_key,&epoll_val);
-    
+
     u64 fd_val=0;
     fd_counts.update(&final_fd_key,&fd_val);
-    
+
     int fd_request_final_key=final_val + fd_key;
     fd_request_ts.delete(&fd_request_final_key);
-    
+
     int connection_accepted_fd_key=final_val + fd_key;
     u64 connection_accepted_fd_val=0;
     connection_accepted_fd.update(&connection_accepted_fd_key,&connection_accepted_fd_val);
-    
+
     pid_io_wait.delete(&tid);
     return 0;
 }
@@ -280,8 +276,8 @@ S_COUNT = c_int(0)
 first_pid = None
 if args.pid:
     pid_text = ""
-    tid_text= ""
-    curr_pid_text=""
+    tid_text = ""
+    curr_pid_text = ""
     for pid in args.pid:
         if first_pid is None:
             first_pid = pid
@@ -290,7 +286,7 @@ if args.pid:
         curr_pid_text += "curr_pid != %s && " % pid
     pid_text = pid_text.rstrip("&& ")
     tid_text = tid_text.rstrip("&& ")
-    curr_pid_text=curr_pid_text.rstrip("&& ")
+    curr_pid_text = curr_pid_text.rstrip("&& ")
     bpf_text = bpf_text.replace('FILTER_PID',
                                 'if (''' + pid_text + '''){ return 0; }''')
     bpf_text = bpf_text.replace('FILTER_CURR_PID',
@@ -308,14 +304,14 @@ if args.pid:
         """
         fd_setup_text += pid_text
         fd_counter += 500
-    older_pid_text=""
+    older_pid_text = ""
     for pid in args.pid:
         older_pid_text += "pid == %s || " % pid
     older_pid_text = older_pid_text.rstrip("|| ")
     bpf_text = bpf_text.replace('FILTER_PREV_PID', 'if (''' + older_pid_text + '''){  u64 ts = bpf_ktime_get_ns();
     pid_io_wait.update(&tgid, &ts); }''')
     bpf_text = bpf_text.replace('FD_SETUP', fd_setup_text)
-#print(bpf_text)
+# print(bpf_text)
 b = BPF(text=bpf_text)
 
 mutex_uprobe = "/proc/{0}/root/lib/aarch64-linux-gnu/libpthread.so.0".format(first_pid)
@@ -346,17 +342,17 @@ while (1):
             print("threads used " + str(threads_used))
             total_request = b["total_request"][S_COUNT].value
             print("total request " + str(total_request))
-            total_lock_time = float(b["lock_time"][S_COUNT].value)/1000
-            print("total lock time "+str(total_lock_time))
+            total_lock_time = float(b["lock_time"][S_COUNT].value) / 1000
+            print("total lock time " + str(total_lock_time))
             total_time = b["total_time"][S_COUNT].value
             if total_request != 0:
                 total_time = round((float(total_time) / total_request), 2)
-                print("total time " + str(total_time/1000))
+                print("total time " + str(total_time / 1000))
 
             io_wait_time = float(b["io_wait_time"][S_COUNT].value) / 1000
             print("io wait time final " + str(io_wait_time))
-            io_wait_per_thread=0
-            if threads_used!=0:
+            io_wait_per_thread = 0
+            if threads_used != 0:
                 io_wait_per_thread = float(io_wait_time) / threads_used
                 io_wait_per_thread = io_wait_per_thread / 1000
 
@@ -370,4 +366,3 @@ while (1):
 
     except KeyboardInterrupt:
         exit()
-
